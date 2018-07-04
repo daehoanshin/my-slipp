@@ -40,4 +40,12 @@ public class UserController {
 		model.addAttribute("user", user);
 		return "/user/updateForm";
 	}
+	
+	@PostMapping("{id}")
+	public String update(@PathVariable Long id, User newUser) {
+		User user = UserRepository.findOne(id);
+		user.update(newUser);
+		UserRepository.save(user);
+		return "redirect:/users";
+	}
 }
