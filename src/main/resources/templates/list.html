@@ -48,16 +48,13 @@
 				</tr>
 			</thead>
 			<tbody>
+				{{#users}}
 				<tr>
-					<th scope="row">javajigi</th>
-					<td>자바지기</td>
-					<td>javajigi@slipp.net</td>
+					<th scope="row">{{userId}}</th>
+					<td>{{name}}</td>
+					<td>{{email}}</td>
 				</tr>
-				<tr>
-					<th scope="row">sanjigi</th>
-					<td>산지기</td>
-					<td>sanjigi@slipp.net</td>
-				</tr>
+				{{/users}}
 			</tbody>
 		</table>
 	</div>
