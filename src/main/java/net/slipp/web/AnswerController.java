@@ -31,6 +31,7 @@ public class AnswerController {
 		Question question = questionRepository.findOne(questionId);
 		Answer answer = new Answer(loginUser, question, contents);
 		answerRepository.save(answer);
+		System.out.println("%d" + String.format("%d", 2));
 		return String.format("redirect:/questions/%d", questionId);
 	}
 }

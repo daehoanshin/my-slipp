@@ -57,7 +57,7 @@ public class QuestionController {
 			return "/qna/updateForm";
 		} catch (IllegalStateException e) {
 			model.addAttribute("errorMessage", e.getMessage());
-			return "/users/loginForm";
+			return "/user/login";
 		}
 	}
 	
@@ -81,7 +81,7 @@ public class QuestionController {
 			return String.format("redirect:/questions/%d", id);
 		} catch (IllegalStateException e) {
 			model.addAttribute("errorMessage", e.getMessage());
-			return "/users/loginForm";
+			return "/user/login";
 		}
 	}
 	
@@ -94,7 +94,7 @@ public class QuestionController {
 			return "redirect:/";
 		} catch (IllegalStateException e) {
 			model.addAttribute("errorMessage", e.getMessage());
-			return "/users/loginForm";
+			return "/user/login";
 		}
 	}
 }
