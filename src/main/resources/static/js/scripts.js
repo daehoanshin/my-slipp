@@ -1,9 +1,6 @@
-String.prototype.format = function() {
-  var args = arguments;
-  return this.replace(/{(\d+)}/g, function(match, number) {
-    return typeof args[number] != 'undefined'
-        ? args[number]
-        : match
-        ;
-  });
-};
+$(".answer-write input[type=submit]").click(addAnswer);
+
+function addAnswer(e) {
+	console.log("click me");
+	e.preventDefault();
+}
