@@ -29,8 +29,34 @@ function onSuccess(data, status) {
 	var answerTemplate = $("#answerTemplate").html();
 	var template = answerTemplate.format(data.writer.userId, data.formattedCreateDate, data.contents, data.id, data.id);
 	$(".qna-comment-slipp-articles").prepend(template);
-	
-	$(".answer-write textarea").val("");
+
+	//$(".answer-write textarea").val("");
+	$("textarea[name=contents]").val("");
+}
+
+/*$(".link-delete-article").click(e) {
+	e.preventDefault();
+}*/
+
+$(".link-delete-article").click(deleteAnswer);
+
+function deleteAnswer(e) {
+	e.preventDefault();
+	var url = $(this).attr("href");
+	// console.log("url : " + url);
+
+	$.ajax({
+		console.log("aaa");
+		type : 'delete',
+		url : url,
+		dataType : 'json',
+		error : function(xhr, status) {
+			console.log("error");
+		},
+		success : function(data, status) {
+			console.log("success");
+		}
+	});
 }
 
 String.prototype.format = function() {
