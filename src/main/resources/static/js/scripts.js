@@ -27,26 +27,21 @@ function onError() {
 function onSuccess(data, status) {
 	console.log(data);
 	var answerTemplate = $("#answerTemplate").html();
-	var template = answerTemplate.format(data.writer.userId, data.formattedCreateDate, data.contents, data.id, data.id);
+	var template = answerTemplate.format(data.writer.userId, data.formattedCreateDate, data.contents, data.question.id, data.id);
 	$(".qna-comment-slipp-articles").prepend(template);
 
-	//$(".answer-write textarea").val("");
 	$("textarea[name=contents]").val("");
 }
-
-/*$(".link-delete-article").click(e) {
-	e.preventDefault();
-}*/
 
 $(".link-delete-article").click(deleteAnswer);
 
 function deleteAnswer(e) {
 	e.preventDefault();
-	var url = $(this).attr("href");
-	// console.log("url : " + url);
+	var deleteBtn = $(this);
+	var url = deleteBtn.attr("href");
+	console.log("url : " + url);
 
 	$.ajax({
-		console.log("aaa");
 		type : 'delete',
 		url : url,
 		dataType : 'json',
@@ -54,7 +49,12 @@ function deleteAnswer(e) {
 			console.log("error");
 		},
 		success : function(data, status) {
-			console.log("success");
+			console.log(data);
+			if(data.valid) {
+				deleteBtn.closest("article").remove();
+			} else {
+				alert(data.errorMessage);
+			}
 		}
 	});
 }
