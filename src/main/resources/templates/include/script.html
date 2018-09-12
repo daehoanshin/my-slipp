@@ -1,0 +1,596 @@
+
+<!-- script references -->
+<link rel="stylesheet" href="/css/abl/bootstrap.min.css">
+<link rel="stylesheet" href="/css/abl/font-awesome.css">
+<link rel="stylesheet" href="/css/abl/font-awesome.min.css">
+<link rel="stylesheet" href="/css/abl/style.css">
+
+<script src="/js/jquery-1.12.4.js"></script>
+<script src="/js/ui.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-confirm/3.3.0/jquery-confirm.min.js"></script>
+
+<script>
+	var flag = [];		// 폴더 클릭 여부 flag
+	var lockList = [];
+	var BtnFlag = [];	// 버튼 활성화 여부 flag
+	var rootPath = ('${rootPath}').replace(/#/gi, '/');
+	function isNull(sValue)
+	{
+		if(new String(sValue).valueOf() == "undefined") return true;
+		if(sValue == null) return true;
+		var v_ChkStr = new String(sValue);
+		var returnvalue = false;
+
+		if(v_ChkStr == null) return true;
+
+		if(v_ChkStr.toString().length == 0) return true;
+		else return false;
+
+		return false;
+	}
+	/* 하위 폴더 검색 function */
+	function getChildrenNode(parent, data, path){
+		loginCheck();
+
+		// 폴더 클릭 시 해당 경로를 파일 경로에 입력
+		$('#filePath').val(path.replace(/#/gi, '/').replace(rootPath, ''));
+
+		// 클릭한 폴더의 element
+		var thisElement = data;
+
+		// 아코디언 이벤트
+ 		if(flag[thisElement] == 1) {
+ 			folderCss(thisElement, 'close');
+			$('#' + thisElement).next().slideUp();
+			flag[thisElement] = -1;
+			return;
+		} else if(flag[thisElement] == -1) {
+ 			folderCss(thisElement, 'open');
+			$('#' + thisElement).next().slideDown();
+			flag[thisElement] = 1;
+			return;
+		}
+
+		// 폴더 클릭 시 flag를 1로 지정
+		flag[thisElement] = 1;
+
+		// form 데이터 설정
+		$('#parent').val(data);
+		$('#path').val(path);
+		var formData = $('#frm').serialize();
+		console.log("formData : {} ", formData);
+		$.ajax({
+			type : 'POST',
+			url: '/subDirList',
+			data: formData,
+			success: function(result){
+				var initNode = $("[id^='" + thisElement + "']");
+				var noneElement = $(result).find('#noneResult');
+
+ 				if(initNode.length > 1) {
+					$($("[id^='" + thisElement + "']")[1]).empty();
+				}
+				$('#' + thisElement).after(result);
+
+				// 클릭한 폴더 열림 CSS 적용
+				folderCss(thisElement, 'open');
+				// 더 이상 하위 폴더가 존재하지 않을 경우, 아이콘 CSS 제거
+				$(result).each(function() {
+					if($(this).attr('id') == 'noneResult') {
+						$($('#' + thisElement).children()[0]).removeClass('fa-minus-square-o');
+						return;
+					}
+				});
+
+				// 아코디언 이벤트
+				$('#' + thisElement).next().slideDown('fast', function(){
+					$($('#' + thisElement).next()).css('display', '');
+				});
+			},
+			error:function(request, status, error){
+				console.log('code: ' + request.status + '\n');
+			}
+		});
+	}
+
+	/* 더블 클릭 시, 해당 폴더의 파일 목록 function */
+	function getFileList(selectedNodeId, path) {
+		loginCheck();
+
+		// rootPath를 제거한 path를 파일경로에 지정
+		setSearchPath(path);
+
+		// form 데이터 설정
+		$('#path').val(path);
+		var formData = $('#frm').serialize();
+
+		$.ajax({
+			type : 'POST',
+			url : '/fileList',
+			data : formData,
+			success: function(result){
+				$('#deployListTable').empty();
+				$('#deployListTable').append(result);
+			}
+		});
+	}
+
+	/* 파일 조회 function */
+	function searchFile() {
+		loginCheck();
+
+		// 파일경로와 파일검색에 입력된 경로와 파일명을 form data로 입력
+		var filePath = $('#filePath').val();
+		var fileName = $('#fileName').val();
+		var workspaceNm = $('#workspaceNm').val();
+
+		$('#frmPath').val(filePath);
+		$('#frmName').val(fileName);
+		$('#frmworkspaceNm').val(workspaceNm);
+		$('#workspaceNm2').val(workspaceNm);
+
+		var formData = $('#searchFrm').serialize();
+
+		// loading spinner 추가
+		$('#deployListBody').empty();
+		$('#deployListBody').append('<div class="loader"></div>');
+		$('#DeployList').addClass('disabled');
+
+		$.ajax({
+			type : 'POST',
+			url : '/searchFile',
+			data : formData,
+			success: function(result){
+				$('.loader').remove();
+
+				$('#deployListTable').empty();
+				$('#deployListTable').append(result);
+				$('#DeployList').removeClass('disabled');
+			}
+		});
+	}
+
+	/* 엔터키 입력 function */
+	function enterKeyPress(){
+		if (window.event.keyCode == 13) {
+			return 1;
+		} else {
+			return 0;
+		}
+	}
+
+	/* login 여부 체크 function
+	 * 1: login
+	 * -1: login fail
+	 * 0: default
+	 */
+	function loginCheck() {
+		if(BtnFlag[login] != '1') {
+			return;
+		}
+	}
+	/* fileName 확장자 변경 function */
+	function fillFileName(fileName){
+		//fileName = fileName.replace('.java','.class');
+		$("#fileName").val(fileName);
+	}
+	/* filePath 형식 function */
+	function setSearchPath(filePath) {
+		//console.log(filePath)
+		$('#filePath').val(filePath.replace(/#/gi, '/').replace(rootPath, ''));
+	}
+	/* login function */
+	function login(){
+
+		if(loginValidCheck()){
+			// CSS
+			$('#lginId').addClass('disabled');
+			$('#lginId').attr('disabled', 'disabled');
+			$('#lginPw').addClass('disabled');
+			$('#lginPw').attr('disabled', 'disabled');
+
+			$('#loginMsg').empty();
+			$('#loginMsg').append('<span>로그인 중입니다.</span>');
+
+			var formData = $('#loginFrm').serialize();
+
+			//loginCheck();
+
+			$.ajax({
+				type : 'POST',
+				url : '/loginCheck',
+				data : {"lginId" : $('#lginId').val(), "lginPw" : $('#lginPw').val() },
+				dataType: "json",
+				success: function(result){
+					// login 실패
+					if(result.loginResult == 'fail'){
+						BtnFlag['login'] = '-1';
+
+						// CSS
+						$('#lginId').attr('disabled', false);
+						$('#lginPw').attr('disabled', false);
+						$('#lginId').removeClass('disabled');
+						$('#lginPw').removeClass('disabled');
+
+						$('#loginMsg').text("로그인 정보가 맞지 않습니다.");
+						$('#loginDiv').html();
+						$("#lginPw").val('');
+						$("#lginPw").focus();
+						return;
+
+					// 로그인 성공
+					} else {
+						BtnFlag['login'] = '1';
+
+						// CSS
+						$("#searchBtn").attr('disabled',false);
+						$('#searchBtn').removeClass('btn-readonly');
+
+						$('#filePath').attr('disabled', false);
+						$('#fileName').attr('disabled', false);
+						$('#filePath').removeClass('disabled');
+						$('#fileName').removeClass('disabled');
+
+						$('#folderList').attr('disabled', false);
+						$('#folderList').removeClass('disabled');
+
+						// login 문구
+						$("#loginDiv").html('');
+						var html = "";
+						$('#usrNm').text(result.loginResult);
+						html += '<div class="div3">';
+						html += '<input type="hidden" id="user_id" name="user_id" value="'+result.user_id+'"/>';
+						html += '<i class="fa fa-user-circle plus-icon"></i><span class="fnt-wgt-b">';
+						html += result.loginResult;
+						html += '</span>님 환영합니다.</div><hr id="hrLine" class="trans--grow">';
+						$("#loginDiv").append($(html));
+
+						// line 생성
+						setTimeout(function(){
+						    $('.trans--grow').addClass('grow');
+						    getWorkList();
+						}, 275);
+					}
+				},
+				error:function(request,status,error){
+			        alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+			    }
+			});
+		}
+	}
+
+	/* 소스 수정정보 function */
+	function getWorkList(){
+		// loading 메세지
+		var infoMsg = "<tr><td style='color:red;width:  1201px;text-align:  center;height:  150px;vertical-align:  middle;'>소스 수정 정보를 불러오는 중입니다.....</td></tr>";
+
+		$('#workListBody').empty();
+		$('#workListBody').append(infoMsg);
+
+		$.ajax({
+			type : 'POST',
+			url : '/getWorkList',
+			success: function(result){
+				var fileElement = $(result).find('#result');
+
+				$('#workListBody').empty();
+				$('#workListBody').append(fileElement);
+			},
+			error:function(request,status,error){
+		        alert("code:"+request.status+"\n"+"message:"+request.responseText+"\n"+"error:"+error);
+		    }
+		});
+	}
+
+	/* 로그인 validation function */
+	function loginValidCheck(){
+		var id = $("#lginId").val();
+		var pw = $("#lginPw").val();
+
+		if(id == ''){
+			$('#loginMsg').text("아이디를 입력해주세요.");
+			$("#lginId").focus();
+			return false;
+		}
+		if(pw == ''){
+			$('#loginMsg').text("비밀번호를 입력해주세요.");
+			$("#lginPw").focus();
+			return false;
+		}
+		return true;
+	}
+
+	/* Deploy -> Lock 파일 이동 function */
+	function moveLock(){
+		loginCheck();
+
+		var lockList = $('#lockListBody').find('td>a');
+		var checkedList = $("input[name=dplChk]:checked");
+
+		// 재시도 버튼 hide
+		$(".after-lock-btn").hide();
+		$(".before-lock-btn").show();
+
+		checkedList.each(function(){
+			// 라인의 css 변경
+			var tr_obj = $(this).parent().parent();
+			var filePath = tr_obj.children()[2];
+			$(filePath).attr('class', 'tb-w45');
+			$(filePath).parent().append('<td class="tb-w20 lock-padding"></td>');
+			// input name=lockChk로 변경
+			$(this).attr('name','lockChk');
+
+			//기존 lockList가 존재 할 때
+			if(lockList.length != 0) {
+				for(var i = 0; i < lockList.length ; i++) {
+					var lockAfter = $(lockList[i]).text();
+					var lockBefore = trimBlank($($(this).parent().next()).text());
+					var lockBefore_obj = $(lockList[i]).parent().parent();
+
+					//옮기려는 deployList에 있는 파일이 현재 lockList에 존재할 때
+					if(lockAfter == lockBefore) {
+						lockBefore_obj.remove();
+					}
+				}
+			}
+			tr_obj.appendTo('.lockTable_body');
+		});
+
+		if($('#DeployList').find('input').length == 0) {
+			$('#dpl_checkAll').attr('checked', false);
+		}
+	}
+
+	/* Lock -> Deploy 파일 이동 function */
+	function moveDeploy(){
+		loginCheck();
+
+		var deployList = $('#deployListBody').find('td>a');
+		var lockList = $('#lockListBody').find('td>a');
+		var searchfilePath = $('#filePath').val();
+		var checkedList = $("input[name=lockChk]:checked");
+
+		checkedList.each(function(){
+			var lockItem = $(this).parent().next();
+			var lockItemData = trimBlank($(lockItem).text());
+			var lockItemPath = $(lockItem.next()).text().replace(lockItemData, "");
+			var lockItemPath2 = lockItemPath.substring(0, lockItemPath.length-1);
+
+			// 라인의 css 변경
+			var tr_obj = $(this).parent().parent();
+			var filePath = tr_obj.children()[2];
+ 			$(filePath).attr('class', 'tb-w65');
+			$($(filePath).parent().children()[3]).remove();
+
+			// input name=dplChk로 변경
+			$(this).attr('name','dplChk');
+			for(var i = 0; i < deployList.length ; i++) {
+				var deployAfter = $(deployList[i]).text();
+				var deployBefore = $($(this).parent().next()).text().replace(/(^\s*)|(\s*$)/g, "");
+				var deployBefore_obj = $(deployList[i]).parent().parent();
+
+				//옮기려는 lockList에 있는 파일이 현재 deployList에 존재할 때
+				if(deployAfter == deployBefore) {
+					deployBefore_obj.remove();
+				}
+			}
+			tr_obj.appendTo('#deployListBody');
+		});
+
+		if($('#lockListBody').find('input').length == 0) {
+			$('#lock_checkAll').attr('checked', false);
+		}
+	}
+
+	/* file Lock function */
+	function setLock() {
+		loginCheck();
+
+		//BtnFlag['lock'] = '1';
+
+		var lockItems = $('#LockList').find('input[name=lockChk]:checked');
+		var lockFailItems = $('#LockList').find('input[name=lockFailChk]:checked');
+		var workspaceNm = $('#workspaceNm2').val();
+
+		if(workspaceNm.length < 5){
+			alert("작업공간을 입력해주세요.");
+			return;
+		}
+		var path = new Array();
+
+		// lock 시도하는 파일들의 path 저장
+		for(var i = 0; i < lockItems.length; i++) {
+			path.push($($(lockItems[i]).parent().next().next()).text());
+		}
+		// lock 실패한 파일들의 path 저장
+		for(var i = 0; i < lockFailItems.length; i++) {
+			path.push($($(lockFailItems[i]).parent().next().next()).text());
+		}
+
+		var lockOkItems = $('#LockList').find('input[name=lockOkChk]');
+		var okPath = new Array();
+
+		// lock 성공한 파일들의 path 저장
+		for(var i = 0; i < lockOkItems.length; i++) {
+			okPath.push($($(lockOkItems[i]).parent().next().next()).text());
+		}
+
+		$('#workspaceNmStr').val(workspaceNm);
+
+		$('#lockListStr').val(path);
+		$('#lockOkListStr').val(okPath);
+		$('#lockUserId').val($('#user_id').val());
+		var formData = $('#lockFrm').serialize();
+
+		$('#LockList').append('<div class="loader lock-loader"></div>');
+		$('#LockList').addClass('disabled');
+
+		$.ajax({
+			type : 'POST',
+			//url: '/lockFile',
+			url: '/deliverFile',
+			data: formData,
+			dataType: "json",
+			success: function(result){
+				// Button 이벤트
+				$.each(result, function(key, value) {
+
+					if(key=='error' && value=='error'){
+						alert("로그인 정보가 유효하지 않습니다.\n다시 접속해주세요.");
+						return;
+					}
+
+					if(key=='wrongPath' && value=='WX'){
+						alert("딜리버할 파일이 지정되지 않았습니다.! \n관리자에게 문의해주세요.");
+						return;
+					}
+
+					if(key=='createChangset' && value=='CX'){
+						alert("체인지셋 생성 실패! \n관리자에게 문의해주세요.");
+						return;
+					}
+
+					if(key=='moveChangset' && value=='MX'){
+						alert("체인지셋 이동 실패! \n관리자에게 문의해주세요.");
+						return;
+					}
+
+					if(key=='NotFoundMX'){
+						alert("체인지셋 이동 실패! \n체크인리스트에 포함되지 않는 소스 포함 되어 있음.");
+
+						var url= "";    //팝업창에 출력될 페이지 URL
+						var winWidth = 900;
+					    var winHeight = 600;
+					    var popupOption= "width="+winWidth+", height="+winHeight;    //팝업창 옵션(optoin)
+					    var myWindow = window.open(url,"TestName",popupOption);
+					    myWindow.document.write("<h1>하기 소스리스트를 Deliver 파일선택 리스트에서 제외해주세요.</h1><br/>"+value+"");
+
+						return;
+					}
+
+
+					if(key=='deliver' && value=='DX'){
+						alert("딜리버 실패! \n관리자에게 문의해주세요.");
+						return;
+					}
+
+					$("input[name=lockChk]:checked").each(function(){
+						var tr1_obj = $(this).parent();
+						var lockItem = tr1_obj.next();
+						var lockItemData = trimBlank($(lockItem).text());
+
+						if(lockItemData == key) {
+							$(this).css('display', 'none');
+							$(tr1_obj).find('span').remove();
+
+							// lock 성공 시
+							if(value == 'O') {
+								$(tr1_obj).append('<i class="fa fa-circle-o"></i>');
+								$(this).prop('checked',false);
+								$(this).attr('name','lockOkChk');
+							// lock 실패 시
+							} else if(value == 'X'){
+								$(tr1_obj).find('i').remove();
+								$(tr1_obj.parent().children()[3]).text('다른 사용자가 이미 잠궜습니다.');
+								$(tr1_obj).append('<i class="fa fa-times unLocked"></i>');
+								$(this).attr('name','lockFailChk');
+							}else {
+
+							}
+						}
+					});
+				});
+				lockUnselectedItem();
+
+				$('.loader').remove();
+				$('#LockList').removeClass('disabled');
+			},
+			error:function(request, status, error){
+				console.log('code: ' + request.status + '\n');
+			}
+		});
+	}
+
+	/* 빈칸 제거 data */
+	function trimBlank(data) {
+		return data.replace(/(^\s*)|(\s*$)/g, "");
+	}
+
+	/* lock 버튼 function */
+	function lockUnselectedItem() {
+		var unCheckdInputLength = $('#LockList').find('input:checkbox:not(:checked)').length;
+		var lockedInput = $($('#LockList').find('i'));
+		var lockedInputLength = lockedInput.length;
+		var failedLockCount = 0;
+
+		lockedInput.each(function() {
+			if($(this).attr('class') == 'fa fa-times unLocked') {
+				failedLockCount ++;
+			}
+		});
+
+		// 실패한 Lock 파일이 없을 때
+		if(Number(unCheckdInputLength-lockedInputLength) > 0 && failedLockCount == 0) {
+			$(".after-lock-btn").hide();
+			$(".before-lock-btn").show();
+		// 실패한 Lock 파일이 있을 때
+		} else if(failedLockCount > 0) {
+			$(".after-lock-btn").show();
+			$(".before-lock-btn").hide();
+		}
+	}
+
+	$(document).ready(function() {
+		var login = '<%=login%>';
+
+		// BtnFlag['login'] = '1';
+
+		if(login == 'fail'){
+			disabledCss();
+			readonlyCss();
+
+ 			$("button").attr('disabled','disabled');
+			$('button').addClass('btn-readonly');
+
+			$("button[name=loginBtn]").attr('disabled',false);
+			$('button[name=loginBtn]').removeClass('btn-readonly');
+
+ 			$('#filePath').attr('disabled', 'disabled');
+			$('#fileName').attr('disabled', 'disabled');
+
+			$('#filePath').addClass('disabled');
+			$('#fileName').addClass('disabled');
+
+			$('#folderList').addClass('disabled');
+		} else {
+			$('#div3').trigger(hrLineCss());
+			BtnFlag['login'] = '1';
+		}
+	});
+	
+	function confirmCall() {
+		//var filePath = $('.tb-w25 td-pl-60 a:first').val();
+		//var filePath = $('a:eq(0)').text();
+		var filePath = $('td>a').text();
+		alert(filePath);
+		
+		$.confirm({
+			 columnClass: 'medium' , 
+			 animation: 'zoom',
+			 closeAnimation: 'scale' ,
+		    title: 'Confirm!',
+		    content: filePath ,
+		    buttons: {
+		        confirm: function () {
+		        	 
+		            $.alert('Confirmed!');
+		        },
+		        cancel: function () {
+		            $.alert('Canceled!');
+		        },
+		       
+		    }
+		});
+	} 
+</script>
