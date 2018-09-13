@@ -573,7 +573,6 @@
 		//var filePath = $('.tb-w25 td-pl-60 a:first').val();
 		//var filePath = $('a:eq(0)').text();
 		var filePath = $('td>a').text();
-		alert(filePath);
 		
 		$.confirm({
 			 columnClass: 'medium' , 
@@ -585,6 +584,7 @@
 		        confirm: function () {
 		        	 
 		            $.alert('Confirmed!');
+		            alert($('td>a').text());
 		        },
 		        cancel: function () {
 		            $.alert('Canceled!');
